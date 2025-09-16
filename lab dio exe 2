@@ -1,0 +1,251 @@
+1️⃣ Esquema Conceitual – Oficina Mecânica
+Entidades e Atributos
+
+Cliente
+
+id_cliente (PK)
+
+nome
+
+endereco
+
+telefone
+
+email
+
+Veiculo
+
+id_veiculo (PK)
+
+id_cliente (FK)
+
+placa
+
+marca
+
+modelo
+
+ano
+
+Equipe
+
+id_equipe (PK)
+
+nome_equipe
+
+Mecanico
+
+id_mecanico (PK)
+
+id_equipe (FK)
+
+nome
+
+endereco
+
+especialidade
+
+OS (Ordem de Serviço)
+
+id_os (PK)
+
+id_veiculo (FK)
+
+id_equipe (FK)
+
+data_emissao
+
+data_conclusao
+
+valor_total
+
+status (ex: “Aberta”, “Em Execução”, “Concluída”)
+
+autorizacao_cliente (boolean)
+
+Servico
+
+id_servico (PK)
+
+descricao
+
+valor_mao_obra (consultado em tabela de referência)
+
+Peca
+
+id_peca (PK)
+
+descricao
+
+valor_unitario
+
+OS_Servico (tabela associativa entre OS e Serviços)
+
+id_os (FK)
+
+id_servico (FK)
+
+quantidade
+
+valor_total_servico (quantidade * valor_mao_obra)
+
+OS_Peca (tabela associativa entre OS e Peças)
+
+id_os (FK)
+
+id_peca (FK)
+
+quantidade
+
+valor_total_peca (quantidade * valor_unitario)
+
+2️⃣ Modelo ER – relações
+
+Um Cliente possui N veículos
+
+Um Veículo pode ter N ordens de serviço (OS)
+
+Uma OS é atribuída a 1 equipe
+
+Uma Equipe é composta por N mecânicos
+
+Uma OS pode conter N serviços (via OS_Servico)
+
+Uma OS pode conter N peças (via OS_Peca)
+
+Serviço consulta valor em tabela de referência
+
+Peça possui valor unitário
+
+3️⃣ Script SQL 
+
+CREATE TABLE Cliente (
+  id_cliente INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(255) NOT NULL,
+  endereco VARCHAR(255),
+  telefone VARCHAR(50),
+  email VARCHAR(255)
+);
+
+CREATE TABLE Veiculo (
+  id_veiculo INT AUTO_INCREMENT PRIMARY KEY,
+  id_cliente INT NOT NULL,
+  placa VARCHAR(10) NOT NULL UNIQUE,
+  marca VARCHAR(100),
+  modelo VARCHAR(100),
+  ano INT,
+  FOREIGN KEY (id_cliente) REFERENCES Cliente(id_cliente)
+);
+
+CREATE TABLE Equipe (
+  id_equipe INT AUTO_INCREMENT PRIMARY KEY,
+  nome_equipe VARCHAR(100)
+);
+
+CREATE TABLE Mecanico (
+  id_mecanico INT AUTO_INCREMENT PRIMARY KEY,
+  id_equipe INT,
+  nome VARCHAR(255) NOT NULL,
+  endereco VARCHAR(255),
+  especialidade VARCHAR(100),
+  FOREIGN KEY (id_equipe) REFERENCES Equipe(id_equipe)
+);
+
+CREATE TABLE OS (
+  id_os INT AUTO_INCREMENT PRIMARY KEY,
+  id_veiculo INT NOT NULL,
+  id_equipe INT NOT NULL,
+  data_emissao DATE NOT NULL,
+  data_conclusao DATE,
+  valor_total DECIMAL(10,2),
+  status ENUM('Aberta','Em Execução','Concluída','Cancelada') DEFAULT 'Aberta',
+  autorizacao_cliente BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (id_veiculo) REFERENCES Veiculo(id_veiculo),
+  FOREIGN KEY (id_equipe) REFERENCES Equipe(id_equipe)
+);
+
+CREATE TABLE Servico (
+  id_servico INT AUTO_INCREMENT PRIMARY KEY,
+  descricao VARCHAR(255) NOT NULL,
+  valor_mao_obra DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE Peca (
+  id_peca INT AUTO_INCREMENT PRIMARY KEY,
+  descricao VARCHAR(255) NOT NULL,
+  valor_unitario DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE OS_Servico (
+  id_os INT,
+  id_servico INT,
+  quantidade INT DEFAULT 1,
+  valor_total_servico DECIMAL(10,2),
+  PRIMARY KEY (id_os,id_servico),
+  FOREIGN KEY (id_os) REFERENCES OS(id_os),
+  FOREIGN KEY (id_servico) REFERENCES Servico(id_servico)
+);
+
+CREATE TABLE OS_Peca (
+  id_os INT,
+  id_peca INT,
+  quantidade INT DEFAULT 1,
+  valor_total_peca DECIMAL(10,2),
+  PRIMARY KEY (id_os,id_peca),
+  FOREIGN KEY (id_os) REFERENCES OS(id_os),
+  FOREIGN KEY (id_peca) REFERENCES Peca(id_peca)
+);
+
+4️⃣ Estrutura no GitHub
+/oficina-mecanica
+│
+├── esquema.sql       # Script SQL completo
+├── modelo-er.png     # (opcional) diagrama ER
+└── README.md
+
+5️⃣ README.md sugerido
+# Sistema de Controle de Ordens de Serviço – Oficina Mecânica
+
+Este repositório contém um modelo conceitual e lógico de banco de dados para um sistema de **controle e gerenciamento de execução de ordens de serviço** em uma oficina mecânica.
+
+## 📌 Contexto
+Clientes levam veículos à oficina mecânica para reparos ou revisões. Cada veículo é designado a uma equipe de mecânicos que identifica os serviços e preenche uma OS (ordem de serviço) com data de entrega. O valor de cada serviço é calculado consultando uma tabela de referência de mão de obra. O valor das peças também compõe a OS. O cliente autoriza a execução dos serviços. A mesma equipe avalia e executa os serviços.
+
+## 🗂️ Estrutura do Projeto
+- `esquema.sql` – Script SQL com criação das tabelas
+- `modelo-er.png` – Diagrama ER ilustrando entidades e relacionamentos (opcional)
+- `README.md` – Documentação do projeto
+
+## 📝 Modelo Conceitual
+**Entidades principais:**
+- Cliente
+- Veículo
+- Equipe
+- Mecânico
+- OS (Ordem de Serviço)
+- Serviço
+- Peça
+- OS_Serviço (tabela associativa)
+- OS_Peça (tabela associativa)
+
+## 🚀 Como usar
+1. Clone este repositório:
+   ```bash
+   git clone https://github.com/seuusuario/oficina-mecanica.git
+
+
+Execute o script esquema.sql no seu banco de dados (MySQL/MariaDB/PostgreSQL).
+
+📝 Observações
+
+Algumas escolhas (como atributos de endereço, tipos de status, etc.) foram assumidas por não estarem na narrativa original. Elas podem ser ajustadas conforme as regras do negócio.
+
+👤 Autor
+
+Desenvolvido por Filipe Pimentel
+.
+
+
+---
+
+Quer que eu também gere **o diagrama ER em imagem (PNG)** para você já colocar no repositório? (Posso gerar ago
