@@ -1,0 +1,215 @@
+Título: Projeto Lógico de Banco de Dados – Oficina Mecânica
+
+Descrição:
+Este projeto lógico modela o banco de dados de uma oficina mecânica, contemplando clientes, veículos, ordens de serviço (OS), mecânicos, serviços, peças e entregas.
+O modelo lógico reflete relacionamentos presentes no EER, garantindo integridade referencial e constraints coerentes com o cenário.
+
+Destaques do modelo:
+
+Clientes: pessoa física ou jurídica, sem sobreposição de informações.
+
+Veículos: associados a clientes e identificados por placa e modelo.
+
+Ordens de Serviço (OS): contendo data de emissão, valor total, status, data de conclusão e autorização do cliente.
+
+Mecânicos: equipe responsável pela avaliação e execução dos serviços.
+
+Serviços e Peças: itens que compõem o valor da OS, referenciados por tabela de referência.
+
+Entrega: rastreável com status e código de rastreio.
+
+2️⃣ Script SQL – Criação do Esquema
+-- ============================
+-- TABELAS PRINCIPAIS
+-- ============================
+
+-- Clientes PF ou PJ
+CREATE TABLE Cliente (
+    id_cliente INT PRIMARY KEY AUTO_INCREMENT,
+    tipo_cliente ENUM('PF','PJ') NOT NULL,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(100),
+    cnpj_cpf VARCHAR(20) UNIQUE NOT NULL,
+    CHECK (tipo_cliente IN ('PF','PJ'))
+);
+
+-- Veículos
+CREATE TABLE Veiculo (
+    id_veiculo INT PRIMARY KEY AUTO_INCREMENT,
+    id_cliente INT NOT NULL,
+    placa VARCHAR(10) UNIQUE NOT NULL,
+    modelo VARCHAR(100) NOT NULL,
+    ano INT,
+    FOREIGN KEY (id_cliente) REFERENCES Cliente(id_cliente)
+);
+
+-- Mecânicos
+CREATE TABLE Mecanico (
+    id_mecanico INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(150) NOT NULL,
+    endereco VARCHAR(200),
+    especialidade VARCHAR(100)
+);
+
+-- Tabela de referência de serviços
+CREATE TABLE ServicoReferencia (
+    id_servico INT PRIMARY KEY AUTO_INCREMENT,
+    descricao VARCHAR(150) NOT NULL,
+    valor DECIMAL(10,2) NOT NULL
+);
+
+-- Peças
+CREATE TABLE Peca (
+    id_peca INT PRIMARY KEY AUTO_INCREMENT,
+    descricao VARCHAR(150) NOT NULL,
+    valor DECIMAL(10,2) NOT NULL
+);
+
+-- Ordens de Serviço (OS)
+CREATE TABLE OrdemServico (
+    id_os INT PRIMARY KEY AUTO_INCREMENT,
+    id_veiculo INT NOT NULL,
+    id_mecanico INT NOT NULL,
+    data_emissao DATE NOT NULL,
+    data_conclusao DATE,
+    valor_total DECIMAL(10,2),
+    status ENUM('Aberta','Em Andamento','Concluída','Cancelada') NOT NULL,
+    autorizacao_cliente BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (id_veiculo) REFERENCES Veiculo(id_veiculo),
+    FOREIGN KEY (id_mecanico) REFERENCES Mecanico(id_mecanico)
+);
+
+-- Serviços executados na OS
+CREATE TABLE OS_Servico (
+    id_os INT NOT NULL,
+    id_servico INT NOT NULL,
+    quantidade INT DEFAULT 1,
+    PRIMARY KEY(id_os, id_servico),
+    FOREIGN KEY (id_os) REFERENCES OrdemServico(id_os),
+    FOREIGN KEY (id_servico) REFERENCES ServicoReferencia(id_servico)
+);
+
+-- Peças utilizadas na OS
+CREATE TABLE OS_Peca (
+    id_os INT NOT NULL,
+    id_peca INT NOT NULL,
+    quantidade INT DEFAULT 1,
+    PRIMARY KEY(id_os, id_peca),
+    FOREIGN KEY (id_os) REFERENCES OrdemServico(id_os),
+    FOREIGN KEY (id_peca) REFERENCES Peca(id_peca)
+);
+
+-- Entregas
+CREATE TABLE Entrega (
+    id_entrega INT PRIMARY KEY AUTO_INCREMENT,
+    id_os INT NOT NULL,
+    status ENUM('Pendente','Em Transporte','Entregue','Cancelada') NOT NULL,
+    codigo_rastreio VARCHAR(50) UNIQUE,
+    FOREIGN KEY (id_os) REFERENCES OrdemServico(id_os)
+);
+
+3️⃣ Inserção de Dados de Teste
+-- Clientes
+INSERT INTO Cliente (tipo_cliente, nome, email, cnpj_cpf)
+VALUES
+('PF','João Silva','joao@email.com','12345678901'),
+('PJ','AutoTech Ltda','contato@autotech.com','12345678000199');
+
+-- Veículos
+INSERT INTO Veiculo (id_cliente, placa, modelo, ano)
+VALUES
+(1,'ABC1234','Honda Civic',2018),
+(2,'XYZ9876','Ford Focus',2020);
+
+-- Mecânicos
+INSERT INTO Mecanico (nome, endereco, especialidade)
+VALUES
+('Carlos Souza','Rua A, 123','Motor'),
+('Ana Lima','Rua B, 456','Suspensão');
+
+-- Serviços de referência
+INSERT INTO ServicoReferencia (descricao, valor)
+VALUES
+('Troca de óleo',150.00),
+('Alinhamento',100.00);
+
+-- Peças
+INSERT INTO Peca (descricao, valor)
+VALUES
+('Filtro de óleo',50.00),
+('Pastilha de freio',120.00);
+
+-- Ordens de Serviço
+INSERT INTO OrdemServico (id_veiculo, id_mecanico, data_emissao, status, autorizacao_cliente, valor_total)
+VALUES
+(1,1,'2025-09-16','Aberta',TRUE,200.00),
+(2,2,'2025-09-15','Em Andamento',TRUE,220.00);
+
+-- Serviços na OS
+INSERT INTO OS_Servico (id_os, id_servico, quantidade)
+VALUES
+(1,1,1),
+(2,2,1);
+
+-- Peças na OS
+INSERT INTO OS_Peca (id_os, id_peca, quantidade)
+VALUES
+(1,1,1),
+(2,2,2);
+
+-- Entregas
+INSERT INTO Entrega (id_os, status, codigo_rastreio)
+VALUES
+(1,'Pendente','TRK123456'),
+(2,'Em Transporte','TRK654321');
+
+4️⃣ Queries Exemplos
+4.1 Recuperações simples com SELECT
+SELECT nome, email FROM Cliente;
+
+4.2 Filtros com WHERE
+SELECT modelo, placa 
+FROM Veiculo
+WHERE ano >= 2020;
+
+4.3 Expressões para atributos derivados
+SELECT id_os, valor_total, valor_total * 0.10 AS imposto_estimado
+FROM OrdemServico;
+
+4.4 Ordenações com ORDER BY
+SELECT nome, especialidade
+FROM Mecanico
+ORDER BY nome ASC;
+
+4.5 Filtros em grupos com HAVING
+SELECT id_mecanico, COUNT(id_os) AS total_os
+FROM OrdemServico
+GROUP BY id_mecanico
+HAVING COUNT(id_os) > 0;
+
+4.6 Junções entre tabelas
+-- Relacionamento de OS com serviços e peças
+SELECT o.id_os, c.nome AS cliente, v.modelo AS veiculo, s.descricao AS servico, p.descricao AS peca
+FROM OrdemServico o
+JOIN Veiculo v ON o.id_veiculo = v.id_veiculo
+JOIN Cliente c ON v.id_cliente = c.id_cliente
+LEFT JOIN OS_Servico os ON o.id_os = os.id_os
+LEFT JOIN ServicoReferencia s ON os.id_servico = s.id_servico
+LEFT JOIN OS_Peca op ON o.id_os = op.id_os
+LEFT JOIN Peca p ON op.id_peca = p.id_peca;
+
+-- Situação das entregas com status e código de rastreio
+SELECT o.id_os, c.nome AS cliente, e.status, e.codigo_rastreio
+FROM Entrega e
+JOIN OrdemServico o ON e.id_os = o.id_os
+JOIN Veiculo v ON o.id_veiculo = v.id_veiculo
+JOIN Cliente c ON v.id_cliente = c.id_cliente;
+
+
+✅ Observações finais:
+
+O modelo lógico contempla clientes PF/PJ, veículos, OS, mecânicos, serviços, peças e entregas.
+
+As queries apresentam SELECT, WHERE, expressões derivadas, ORDER BY, HAVING e JOIN.
+
+O projeto está pronto para ser subido em repositório GitHub com README explicativo e scripts SQL de criação e testes.
